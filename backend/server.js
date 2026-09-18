@@ -13,9 +13,20 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(
     cors({
-        origin: process.env.CLIENT_URL || "http://localhost:5173"
+        origin: function(origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        }
     })
 );
 
@@ -496,19 +507,19 @@ app.put(
                 certificate.title;
 
             certificate.issuer =
-                req.body.issuer ??
+                req.body.issuer ? ?
                 certificate.issuer;
 
             certificate.date =
-                req.body.date ??
+                req.body.date ? ?
                 certificate.date;
 
             certificate.description =
-                req.body.description ??
+                req.body.description ? ?
                 certificate.description;
 
             certificate.verificationUrl =
-                req.body.verificationUrl ??
+                req.body.verificationUrl ? ?
                 certificate.verificationUrl;
 
             if (req.file) {
