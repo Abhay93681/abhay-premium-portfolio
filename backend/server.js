@@ -507,19 +507,23 @@ app.put(
                 certificate.title;
 
             certificate.issuer =
-                req.body.issuer ??
+                req.body.issuer !== undefined ?
+                req.body.issuer :
                 certificate.issuer;
 
             certificate.date =
-                req.body.date ??
+                req.body.date !== undefined ?
+                req.body.date :
                 certificate.date;
 
             certificate.description =
-                req.body.description ??
+                req.body.description !== undefined ?
+                req.body.description :
                 certificate.description;
 
             certificate.verificationUrl =
-                req.body.verificationUrl ??
+                req.body.verificationUrl !== undefined ?
+                req.body.verificationUrl :
                 certificate.verificationUrl;
 
             if (req.file) {
