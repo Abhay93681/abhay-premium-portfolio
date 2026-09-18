@@ -1,41 +1,69 @@
 import dotenv from "dotenv";
 dotenv.config();
+
 import express from "express";
 import cors from "cors";
-
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import multer from "multer";
-
-
 
 const app = express();
 
 const PORT = process.env.PORT || 5000;
 
+/* =========================
+   CORS
+========================= */
+
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://abhay-premium-portfolio.vercel.app",
-    process.env.CLIENT_URL
-].filter(Boolean);
+    "http://localhost:5174",
+    "https://abhay-premium-portfolio-t5yi-e59t17gp8-abhay-a8d3.vercel.app"
+];
 
 app.use(
     cors({
         origin: function(origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.log("Blocked CORS origin:", origin);
-                callback(new Error("Not allowed by CORS"));
+            // Allow requests without an origin
+            // such as Postman/server-to-server requests
+            if (!origin) {
+                return callback(null, true);
             }
+
+            // Allow exact origins
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            // Allow Vercel preview deployments
+            if (origin.endsWith(".vercel.app")) {
+                return callback(null, true);
+            }
+
+            return callback(
+                new Error("Not allowed by CORS")
+            );
         },
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
+
+        methods: [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "OPTIONS"
+        ],
+
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization"
+        ],
+
         credentials: true
     })
 );
-/*wee*/
-app.use(express.json({ limit: "5mb" }));
+
+app.use(express.json());
 
 /* =========================
    DATABASE SCHEMAS
@@ -169,8 +197,16 @@ const certificateSchema = new mongoose.Schema({
     timestamps: true
 });
 
-const Profile = mongoose.model("Profile", profileSchema);
-const Project = mongoose.model("Project", projectSchema);
+const Profile = mongoose.model(
+    "Profile",
+    profileSchema
+);
+
+const Project = mongoose.model(
+    "Project",
+    projectSchema
+);
+
 const Certificate = mongoose.model(
     "Certificate",
     certificateSchema
@@ -199,7 +235,9 @@ const upload = multer({
             callback(null, true);
         } else {
             callback(
-                new Error("Only PDF, JPG, PNG and WEBP files are allowed.")
+                new Error(
+                    "Only PDF, JPG, PNG and WEBP files are allowed."
+                )
             );
         }
     }
@@ -210,7 +248,8 @@ const upload = multer({
 ========================= */
 
 function authenticate(req, res, next) {
-    const authorization = req.headers.authorization;
+    const authorization =
+        req.headers.authorization;
 
     if (!authorization) {
         return res.status(401).json({
@@ -218,7 +257,8 @@ function authenticate(req, res, next) {
         });
     }
 
-    const token = authorization.replace("Bearer ", "");
+    const token =
+        authorization.replace("Bearer ", "");
 
     try {
         const decoded = jwt.verify(
@@ -251,135 +291,198 @@ app.get("/api/health", (req, res) => {
    LOGIN
 ========================= */
 
-app.post("/api/auth/login", async(req, res) => {
-    try {
-        const { email, password } = req.body;
+app.post(
+    "/api/auth/login",
+    async(req, res) => {
+        try {
+            const {
+                email,
+                password
+            } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({
-                message: "Email and password are required"
-            });
-        }
-
-        if (
-            email.toLowerCase() !==
-            process.env.ADMIN_EMAIL.toLowerCase()
-        ) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
-
-        if (password !== process.env.ADMIN_PASSWORD) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
-
-        const token = jwt.sign({
-                email
-            },
-            process.env.JWT_SECRET, {
-                expiresIn: "7d"
+            if (!email || !password) {
+                return res.status(400).json({
+                    message: "Email and password are required"
+                });
             }
-        );
 
-        res.json({
-            success: true,
-            token
-        });
-    } catch (error) {
-        res.status(500).json({
-            message: "Login failed"
-        });
+            if (
+                email.toLowerCase() !==
+                process.env.ADMIN_EMAIL.toLowerCase()
+            ) {
+                return res.status(401).json({
+                    message: "Invalid email or password"
+                });
+            }
+
+            if (
+                password !==
+                process.env.ADMIN_PASSWORD
+            ) {
+                return res.status(401).json({
+                    message: "Invalid email or password"
+                });
+            }
+
+            const token = jwt.sign({
+                    email
+                },
+                process.env.JWT_SECRET, {
+                    expiresIn: "7d"
+                }
+            );
+
+            res.json({
+                success: true,
+                token
+            });
+        } catch (error) {
+            console.error(
+                "Login error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Login failed"
+            });
+        }
     }
-});
+);
 
 /* =========================
    PROFILE
 ========================= */
 
-app.get("/api/profile", async(req, res) => {
-    try {
-        let profile = await Profile.findOne();
+app.get(
+    "/api/profile",
+    async(req, res) => {
+        try {
+            let profile =
+                await Profile.findOne();
 
-        if (!profile) {
-            profile = await Profile.create({
-                name: "Abhay Bhardwaj",
-                headline: "B.Tech CSE Student & Aspiring Software Developer",
-                bio: "I build modern web applications, AI-powered interfaces and practical software projects.",
-                skills: [
-                    "React",
-                    "JavaScript",
-                    "Node.js",
-                    "MongoDB",
-                    "AWS",
-                    "HTML",
-                    "CSS",
-                    "Git",
-                    "C++"
-                ]
+            if (!profile) {
+                profile =
+                    await Profile.create({
+                        name: "Abhay Bhardwaj",
+
+                        headline: "B.Tech CSE Student & Aspiring Software Developer",
+
+                        bio: "I build modern web applications, AI-powered interfaces and practical software projects.",
+
+                        skills: [
+                            "React",
+                            "JavaScript",
+                            "Node.js",
+                            "MongoDB",
+                            "AWS",
+                            "HTML",
+                            "CSS",
+                            "Git",
+                            "C++"
+                        ]
+                    });
+            }
+
+            res.json(profile);
+        } catch (error) {
+            console.error(
+                "Profile GET error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not load profile"
             });
         }
-
-        res.json(profile);
-    } catch (error) {
-        res.status(500).json({
-            message: "Could not load profile"
-        });
     }
-});
+);
 
-app.put("/api/profile", authenticate, async(req, res) => {
-    try {
-        let profile = await Profile.findOne();
+app.put(
+    "/api/profile",
+    authenticate,
+    async(req, res) => {
+        try {
+            let profile =
+                await Profile.findOne();
 
-        if (!profile) {
-            profile = new Profile();
+            if (!profile) {
+                profile = new Profile();
+            }
+
+            Object.assign(
+                profile,
+                req.body
+            );
+
+            await profile.save();
+
+            res.json(profile);
+        } catch (error) {
+            console.error(
+                "Profile UPDATE error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not update profile"
+            });
         }
-
-        Object.assign(profile, req.body);
-
-        await profile.save();
-
-        res.json(profile);
-    } catch (error) {
-        res.status(500).json({
-            message: "Could not update profile"
-        });
     }
-});
+);
 
 /* =========================
    PROJECTS
 ========================= */
 
-app.get("/api/projects", async(req, res) => {
-    try {
-        const projects = await Project.find().sort({
-            featured: -1,
-            createdAt: -1
-        });
+app.get(
+    "/api/projects",
+    async(req, res) => {
+        try {
+            const projects =
+                await Project.find().sort({
+                    featured: -1,
+                    createdAt: -1
+                });
 
-        res.json(projects);
-    } catch (error) {
-        res.status(500).json({
-            message: "Could not load projects"
-        });
+            res.json(projects);
+        } catch (error) {
+            console.error(
+                "Projects GET error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not load projects"
+            });
+        }
     }
-});
+);
 
-app.post("/api/projects", authenticate, async(req, res) => {
-    try {
-        const project = await Project.create(req.body);
+app.post(
+    "/api/projects",
+    authenticate,
+    async(req, res) => {
+        try {
+            const project =
+                await Project.create(
+                    req.body
+                );
 
-        res.status(201).json(project);
-    } catch (error) {
-        res.status(500).json({
-            message: "Could not create project"
-        });
+            res.status(201).json(
+                project
+            );
+        } catch (error) {
+            console.error(
+                "Project CREATE error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not create project"
+            });
+        }
     }
-});
+);
 
 app.put(
     "/api/projects/:id",
@@ -402,6 +505,11 @@ app.put(
 
             res.json(project);
         } catch (error) {
+            console.error(
+                "Project UPDATE error:",
+                error
+            );
+
             res.status(500).json({
                 message: "Could not update project"
             });
@@ -414,15 +522,27 @@ app.delete(
     authenticate,
     async(req, res) => {
         try {
-            await Project.findByIdAndDelete(
-                req.params.id
-            );
+            const project =
+                await Project.findByIdAndDelete(
+                    req.params.id
+                );
+
+            if (!project) {
+                return res.status(404).json({
+                    message: "Project not found"
+                });
+            }
 
             res.json({
                 success: true,
                 message: "Project deleted"
             });
         } catch (error) {
+            console.error(
+                "Project DELETE error:",
+                error
+            );
+
             res.status(500).json({
                 message: "Could not delete project"
             });
@@ -434,24 +554,34 @@ app.delete(
    CERTIFICATES
 ========================= */
 
-app.get("/api/certificates", async(req, res) => {
-    try {
-        const certificates =
-            await Certificate.find()
-            .select("-file.data")
-            .sort({
-                createdAt: -1
+app.get(
+    "/api/certificates",
+    async(req, res) => {
+        try {
+            const certificates =
+                await Certificate.find()
+                .select("-file.data")
+                .sort({
+                    createdAt: -1
+                });
+
+            res.json(certificates);
+        } catch (error) {
+            console.error(
+                "Certificates GET error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not load certificates"
             });
-
-        res.json(certificates);
-    } catch (error) {
-        res.status(500).json({
-            message: "Could not load certificates"
-        });
+        }
     }
-});
+);
 
-/* ADD CERTIFICATE */
+/* =========================
+   ADD CERTIFICATE
+========================= */
 
 app.post(
     "/api/certificates",
@@ -462,15 +592,24 @@ app.post(
             const certificate =
                 await Certificate.create({
                     title: req.body.title,
+
                     issuer: req.body.issuer,
+
                     date: req.body.date,
+
                     description: req.body.description,
+
                     verificationUrl: req.body.verificationUrl,
 
                     file: req.file ? {
-                        data: req.file.buffer,
-                        contentType: req.file.mimetype,
-                        name: req.file.originalname
+                        data: req.file
+                            .buffer,
+
+                        contentType: req.file
+                            .mimetype,
+
+                        name: req.file
+                            .originalname
                     } : undefined
                 });
 
@@ -479,8 +618,15 @@ app.post(
 
             delete result.file;
 
-            res.status(201).json(result);
+            res.status(201).json(
+                result
+            );
         } catch (error) {
+            console.error(
+                "Certificate CREATE error:",
+                error
+            );
+
             res.status(500).json({
                 message: "Could not add certificate"
             });
@@ -488,7 +634,9 @@ app.post(
     }
 );
 
-/* UPDATE CERTIFICATE */
+/* =========================
+   UPDATE CERTIFICATE
+========================= */
 
 app.put(
     "/api/certificates/:id",
@@ -507,34 +655,49 @@ app.put(
                 });
             }
 
-            certificate.title =
-                req.body.title ||
-                certificate.title;
+            if (req.body.title) {
+                certificate.title =
+                    req.body.title;
+            }
 
-            certificate.issuer =
-                req.body.issuer !== undefined ?
-                req.body.issuer :
-                certificate.issuer;
+            if (
+                req.body.issuer !==
+                undefined
+            ) {
+                certificate.issuer =
+                    req.body.issuer;
+            }
 
-            certificate.date =
-                req.body.date !== undefined ?
-                req.body.date :
-                certificate.date;
+            if (
+                req.body.date !==
+                undefined
+            ) {
+                certificate.date =
+                    req.body.date;
+            }
 
-            certificate.description =
-                req.body.description !== undefined ?
-                req.body.description :
-                certificate.description;
+            if (
+                req.body.description !==
+                undefined
+            ) {
+                certificate.description =
+                    req.body.description;
+            }
 
-            certificate.verificationUrl =
-                req.body.verificationUrl !== undefined ?
-                req.body.verificationUrl :
-                certificate.verificationUrl;
+            if (
+                req.body.verificationUrl !==
+                undefined
+            ) {
+                certificate.verificationUrl =
+                    req.body.verificationUrl;
+            }
 
             if (req.file) {
                 certificate.file = {
                     data: req.file.buffer,
+
                     contentType: req.file.mimetype,
+
                     name: req.file.originalname
                 };
             }
@@ -548,6 +711,11 @@ app.put(
 
             res.json(result);
         } catch (error) {
+            console.error(
+                "Certificate UPDATE error:",
+                error
+            );
+
             res.status(500).json({
                 message: "Could not update certificate"
             });
@@ -555,7 +723,9 @@ app.put(
     }
 );
 
-/* VIEW CERTIFICATE FILE */
+/* =========================
+   VIEW CERTIFICATE FILE
+========================= */
 
 app.get(
     "/api/certificates/:id/file",
@@ -576,7 +746,8 @@ app.get(
             }
 
             res.set({
-                "Content-Type": certificate.file.contentType,
+                "Content-Type": certificate.file
+                    .contentType,
 
                 "Content-Disposition": `inline; filename="${certificate.file.name}"`
             });
@@ -585,6 +756,11 @@ app.get(
                 certificate.file.data
             );
         } catch (error) {
+            console.error(
+                "Certificate FILE error:",
+                error
+            );
+
             res.status(500).send(
                 "Could not open certificate"
             );
@@ -592,22 +768,36 @@ app.get(
     }
 );
 
-/* DELETE CERTIFICATE */
+/* =========================
+   DELETE CERTIFICATE
+========================= */
 
 app.delete(
     "/api/certificates/:id",
     authenticate,
     async(req, res) => {
         try {
-            await Certificate.findByIdAndDelete(
-                req.params.id
-            );
+            const certificate =
+                await Certificate.findByIdAndDelete(
+                    req.params.id
+                );
+
+            if (!certificate) {
+                return res.status(404).json({
+                    message: "Certificate not found"
+                });
+            }
 
             res.json({
                 success: true,
                 message: "Certificate deleted"
             });
         } catch (error) {
+            console.error(
+                "Certificate DELETE error:",
+                error
+            );
+
             res.status(500).json({
                 message: "Could not delete certificate"
             });
@@ -620,69 +810,159 @@ app.delete(
 ========================= */
 
 async function createDefaultData() {
-    let profile =
-        await Profile.findOne();
+    try {
+        /* PROFILE */
 
-    if (!profile) {
-        await Profile.create({
-            name: "Abhay Bhardwaj",
+        const profile =
+            await Profile.findOne();
 
-            headline: "B.Tech CSE Student & Aspiring Software Developer",
+        if (!profile) {
+            await Profile.create({
+                name: "Abhay Bhardwaj",
 
-            bio: "I build modern web applications, AI-powered interfaces and practical software projects.",
+                headline: "B.Tech CSE Student & Aspiring Software Developer",
 
-            email: "",
+                bio: "I build modern web applications, AI-powered interfaces and practical software projects.",
 
-            location: "India",
+                email: "",
 
-            github: "https://github.com/Abhay93681",
+                phone: "",
 
-            linkedin: "",
+                location: "India",
 
-            resumeUrl: "",
+                github: "https://github.com/Abhay93681",
 
-            skills: [
-                "React",
-                "JavaScript",
-                "Node.js",
-                "MongoDB",
-                "AWS",
-                "HTML",
-                "CSS",
-                "Git",
-                "C++"
-            ]
-        });
-    }
+                linkedin: "",
 
-    const projectCount =
-        await Project.countDocuments();
+                instagram: "",
 
-    if (projectCount === 0) {
-        await Project.create({
-            title: "AI Chat Interface",
+                resumeUrl: "",
 
-            description: "AI-powered chat application using React, Node.js, Gemini API and AWS.",
+                skills: [
+                    "React",
+                    "JavaScript",
+                    "Node.js",
+                    "MongoDB",
+                    "AWS",
+                    "HTML",
+                    "CSS",
+                    "Git",
+                    "C++"
+                ]
+            });
 
-            tech: [
-                "React",
-                "Node.js",
-                "Gemini API",
-                "AWS"
-            ],
+            console.log(
+                "Default profile created ✅"
+            );
+        }
 
-            githubUrl: "https://github.com/Abhay93681/ai_chatbot",
+        /* PROJECT */
 
-            liveUrl: "http://aichatbott.s3-website.ap-south-1.amazonaws.com",
+        const projectCount =
+            await Project.countDocuments();
 
-            featured: true
-        });
+        if (projectCount === 0) {
+            await Project.create({
+                title: "AI Chat Interface",
+
+                description: "AI-powered chat application using React, Node.js, Gemini API and AWS.",
+
+                tech: [
+                    "React",
+                    "Node.js",
+                    "Gemini API",
+                    "AWS"
+                ],
+
+                githubUrl: "https://github.com/Abhay93681/ai_chatbot",
+
+                liveUrl: "http://aichatbott.s3-website.ap-south-1.amazonaws.com",
+
+                featured: true
+            });
+
+            console.log(
+                "Default project created ✅"
+            );
+        }
+    } catch (error) {
+        console.error(
+            "Default data error:",
+            error
+        );
     }
 }
 
 /* =========================
+   404 HANDLER
+========================= */
+
+app.use(
+    (req, res) => {
+        res.status(404).json({
+            success: false,
+            message: `Route ${req.method} ${req.originalUrl} not found`
+        });
+    }
+);
+
+/* =========================
+   ERROR HANDLER
+========================= */
+
+app.use(
+    (error, req, res, next) => {
+        console.error(
+            "Server error:",
+            error
+        );
+
+        if (
+            error.message ===
+            "Not allowed by CORS"
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "CORS: Origin not allowed"
+            });
+        }
+
+        if (
+            error instanceof multer.MulterError
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: error.message ||
+                "Internal server error"
+        });
+    }
+);
+
+/* =========================
    START SERVER
 ========================= */
+
+if (!process.env.MONGO_URI) {
+    console.error(
+        "❌ MONGO_URI is missing in environment variables."
+    );
+
+    process.exit(1);
+}
+
+if (!process.env.JWT_SECRET) {
+    console.error(
+        "❌ JWT_SECRET is missing in environment variables."
+    );
+
+    process.exit(1);
+}
 
 mongoose
     .connect(process.env.MONGO_URI)
@@ -698,7 +978,7 @@ mongoose
             "0.0.0.0",
             () => {
                 console.log(
-                    `Server running on http://localhost:${PORT}`
+                    `Server running on port ${PORT} 🚀`
                 );
             }
         );
