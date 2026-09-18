@@ -24,7 +24,9 @@ import {
   Eye
 } from "lucide-react";
 
-const API =  "http://localhost:5001/api";
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5001/api";
 
 /* =================================
    MAIN APP
@@ -155,7 +157,6 @@ function App() {
 
       <main>
         <Hero profile={profile} />
-        <HeroInfo profile={profile} />
         <About profile={profile} />
         <Projects projects={projects} />
         <Certificates certificates={certificates} api={API} />
@@ -215,192 +216,86 @@ function Navbar({ dark, setDark, mobileMenu, setMobileMenu, onAdmin }) {
 /* =================================
    HERO
 ================================= */
-function Hero({
-  profile
-}) {
 
+function Hero({ profile }) {
   return (
-
-    <section
-      id="home"
-      className="hero-showcase"
-    >
-
-      <motion.h1
-        className="giant-heading"
-
-        initial={{
-          opacity: 0
-        }}
-
-        animate={{
-          opacity: 1
-        }}
-
-        transition={{
-          duration: 0.8
-        }}
-      >
-
-        I'M A
-        <br />
-        {profile.headline || "DEVELOPER"}
-
-      </motion.h1>
-
-
-      <motion.img
-        src="/profile.jpg"
-        alt={profile.name}
-        className="hero-photo-large"
-
-        initial={{
-          opacity: 0,
-          y: 40
-        }}
-
-        animate={{
-          opacity: 1,
-          y: 0
-        }}
-
-        transition={{
-          duration: 0.8,
-          delay: 0.2
-        }}
-      />
-
-    </section>
-
-  );
-
-}
-
-
-function HeroInfo({
-  profile
-}) {
-
-  return (
-
-    <section className="hero-info section">
-
+    <section id="home" className="hero section">
       <motion.div
-
-        initial={{
-          opacity: 0,
-          y: 30
-        }}
-
-        whileInView={{
-          opacity: 1,
-          y: 0
-        }}
-
-        viewport={{
-          once: true
-        }}
+        className="hero-content"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
       >
-
         <div className="eyebrow">
-          HELLO
+          <Sparkles size={15} /> AVAILABLE FOR OPPORTUNITIES
         </div>
 
+        <h1>
+          Building digital <br />
+          <em>experiences</em> <br />
+          that matter.
+        </h1>
 
-        <h2>
-          I'M {profile.name?.toUpperCase()}
-        </h2>
+        <h3>{profile.headline}</h3>
 
-
-        <p className="hero-description">
-
-          {profile.bio}
-
-        </p>
-
+        <p className="hero-description">{profile.bio}</p>
 
         <div className="hero-buttons">
-
-          
-            href="#projects"
-            className="primary-button"
-          >
-
-            Explore Projects
-
-            <ArrowUpRight size={18} />
-
+          <a href="#projects" className="primary-button">
+            Explore Projects <ArrowUpRight size={18} />
           </a>
 
-
           {profile.resumeUrl && (
-
-            
+            <a
               href={profile.resumeUrl}
               target="_blank"
               rel="noreferrer"
               className="secondary-button"
             >
-
-              <Download size={17} />
-
-              Resume
-
+              <Download size={17} /> Resume
             </a>
-
           )}
-
         </div>
-
 
         <div className="social-links">
-
           {profile.github && (
-
-            
-              href={profile.github}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Github size={16} />
-              GitHub
+            <a href={profile.github} target="_blank" rel="noreferrer">
+              <Github />
             </a>
-
           )}
-
 
           {profile.linkedin && (
-
-            
-              href={profile.linkedin}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Linkedin size={16} />
-              LinkedIn
+            <a href={profile.linkedin} target="_blank" rel="noreferrer">
+              <Linkedin />
             </a>
-
           )}
-
 
           {profile.email && (
-
             <a href={`mailto:${profile.email}`}>
-              <Mail size={16} />
-              Email
+              <Mail />
             </a>
-
           )}
-
         </div>
-
       </motion.div>
 
+      <motion.div
+        className="hero-animation"
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1 }}
+      >
+        <div className="orb">
+          <Code2 size={70} />
+        </div>
+
+        <span className="floating f1">REACT</span>
+        <span className="floating f2">AI</span>
+        <span className="floating f3">AWS</span>
+      </motion.div>
     </section>
-
   );
-
 }
+
 /* =================================
    ABOUT
 ================================= */
