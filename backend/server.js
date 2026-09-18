@@ -18,25 +18,19 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://abhay-premium-portfolio-t5yi-e59t17gp8-abhay-a8d3.vercel.app"
+    "https://abhay-premium-portfolio.vercel.app"
 ];
 
 app.use(
     cors({
         origin: function(origin, callback) {
-            // Allow requests without an origin
-            // such as Postman/server-to-server requests
+            // Allow requests without origin
+            // such as Postman or server-to-server requests
             if (!origin) {
                 return callback(null, true);
             }
 
-            // Allow exact origins
             if (allowedOrigins.includes(origin)) {
-                return callback(null, true);
-            }
-
-            // Allow Vercel preview deployments
-            if (origin.endsWith(".vercel.app")) {
                 return callback(null, true);
             }
 
@@ -50,16 +44,13 @@ app.use(
             "POST",
             "PUT",
             "DELETE",
-            "PATCH",
             "OPTIONS"
         ],
 
         allowedHeaders: [
             "Content-Type",
             "Authorization"
-        ],
-
-        credentials: true
+        ]
     })
 );
 
@@ -306,6 +297,14 @@ app.post(
                 });
             }
 
+            if (!process.env.ADMIN_EMAIL ||
+                !process.env.ADMIN_PASSWORD
+            ) {
+                return res.status(500).json({
+                    message: "Admin credentials are not configured"
+                });
+            }
+
             if (
                 email.toLowerCase() !==
                 process.env.ADMIN_EMAIL.toLowerCase()
@@ -350,7 +349,7 @@ app.post(
 );
 
 /* =========================
-   PROFILE
+   PROFILE - GET
 ========================= */
 
 app.get(
@@ -397,6 +396,10 @@ app.get(
     }
 );
 
+/* =========================
+   PROFILE - UPDATE
+========================= */
+
 app.put(
     "/api/profile",
     authenticate,
@@ -406,7 +409,8 @@ app.put(
                 await Profile.findOne();
 
             if (!profile) {
-                profile = new Profile();
+                profile =
+                    new Profile();
             }
 
             Object.assign(
@@ -431,7 +435,7 @@ app.put(
 );
 
 /* =========================
-   PROJECTS
+   PROJECTS - GET
 ========================= */
 
 app.get(
@@ -458,6 +462,10 @@ app.get(
     }
 );
 
+/* =========================
+   PROJECTS - CREATE
+========================= */
+
 app.post(
     "/api/projects",
     authenticate,
@@ -483,6 +491,10 @@ app.post(
         }
     }
 );
+
+/* =========================
+   PROJECTS - UPDATE
+========================= */
 
 app.put(
     "/api/projects/:id",
@@ -516,6 +528,10 @@ app.put(
         }
     }
 );
+
+/* =========================
+   PROJECTS - DELETE
+========================= */
 
 app.delete(
     "/api/projects/:id",
@@ -551,7 +567,7 @@ app.delete(
 );
 
 /* =========================
-   CERTIFICATES
+   CERTIFICATES - GET
 ========================= */
 
 app.get(
@@ -580,7 +596,7 @@ app.get(
 );
 
 /* =========================
-   ADD CERTIFICATE
+   CERTIFICATES - CREATE
 ========================= */
 
 app.post(
@@ -635,7 +651,7 @@ app.post(
 );
 
 /* =========================
-   UPDATE CERTIFICATE
+   CERTIFICATES - UPDATE
 ========================= */
 
 app.put(
@@ -769,7 +785,7 @@ app.get(
 );
 
 /* =========================
-   DELETE CERTIFICATE
+   CERTIFICATES - DELETE
 ========================= */
 
 app.delete(
@@ -945,7 +961,7 @@ app.use(
 );
 
 /* =========================
-   START SERVER
+   ENVIRONMENT CHECK
 ========================= */
 
 if (!process.env.MONGO_URI) {
@@ -963,6 +979,10 @@ if (!process.env.JWT_SECRET) {
 
     process.exit(1);
 }
+
+/* =========================
+   START SERVER
+========================= */
 
 mongoose
     .connect(process.env.MONGO_URI)
