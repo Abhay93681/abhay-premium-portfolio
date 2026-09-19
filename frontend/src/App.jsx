@@ -558,7 +558,7 @@ function Hero({
         }}
       >
 <img
-  src="/profile.jpeg"
+  src="/profile.jpg"
   alt={profile.name}
   className="hero-photo"
 />
@@ -845,7 +845,7 @@ function About({
         >
 
           <img
-            src="/profile.png"
+            src="/profile1.jpg"
             alt={profile.name}
             className="about-photo"
           />
