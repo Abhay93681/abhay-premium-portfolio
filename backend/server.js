@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://abhay-premium-portfolio.netlify.app",
+    "https://abhaypremiumportfolio.netlify.app",
     "https://abhay-premium-portfolio.vercel.app",
     process.env.CLIENT_URL
 ].filter(Boolean);
