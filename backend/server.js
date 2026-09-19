@@ -17,9 +17,10 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
     "http://localhost:5173",
-    "http://localhost:5174",
-    "https://abhay-premium-portfolio.vercel.app"
-];
+    "https://abhay-premium-portfolio.netlify.app",
+    "https://abhay-premium-portfolio.vercel.app",
+    process.env.CLIENT_URL
+].filter(Boolean);
 
 app.use(
     cors({
@@ -273,6 +274,9 @@ function authenticate(req, res, next) {
 
 app.get("/api/health", (req, res) => {
     res.json({
+        allowedOrigins: allowedOrigins,
+        incomingOrigin: req.headers.origin || "no origin header",
+        clientUrlEnv: process.env.CLIENT_URL || "not set",
         success: true,
         message: "Abhay Portfolio API is running 🚀"
     });
