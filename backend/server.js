@@ -25,8 +25,6 @@ const allowedOrigins = [
 app.use(
     cors({
         origin: function(origin, callback) {
-            // Allow requests without origin
-            // such as Postman or server-to-server requests
             if (!origin) {
                 return callback(null, true);
             }
@@ -149,7 +147,18 @@ const projectSchema = new mongoose.Schema({
     featured: {
         type: Boolean,
         default: false
+    },
+    screenshot: {
+        data: Buffer,
+        contentType: String,
+        name: String
+    },
+    video: {
+        data: Buffer,
+        contentType: String,
+        name: String
     }
+
 }, {
     timestamps: true
 });
@@ -220,7 +229,10 @@ const upload = multer({
             "application/pdf",
             "image/jpeg",
             "image/png",
-            "image/webp"
+            "image/webp",
+            "video/mp4",
+            "video/webm",
+            "video/ogg"
         ];
 
         if (allowedTypes.includes(file.mimetype)) {
@@ -228,12 +240,18 @@ const upload = multer({
         } else {
             callback(
                 new Error(
-                    "Only PDF, JPG, PNG and WEBP files are allowed."
+                    "Only PDF, JPG, PNG, WEBP and Video files are allowed."
                 )
             );
         }
     }
 });
+
+/* Safe Content-Disposition header (handles spaces, unicode, quotes in file names) */
+function safeDisposition(name = "file") {
+    const ascii = String(name).replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "");
+    return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
 
 /* =========================
    ADMIN AUTH
@@ -440,6 +458,7 @@ app.put(
 
 /* =========================
    PROJECTS - GET
+   (file bytes excluded so the list stays small and fast)
 ========================= */
 
 app.get(
@@ -447,7 +466,9 @@ app.get(
     async(req, res) => {
         try {
             const projects =
-                await Project.find().sort({
+                await Project.find()
+                .select("-screenshot.data -video.data")
+                .sort({
                     featured: -1,
                     createdAt: -1
                 });
@@ -473,16 +494,37 @@ app.get(
 app.post(
     "/api/projects",
     authenticate,
+    upload.fields([
+        { name: "screenshot", maxCount: 1 },
+        { name: "video", maxCount: 1 }
+    ]),
     async(req, res) => {
         try {
             const project =
-                await Project.create(
-                    req.body
-                );
+                await Project.create({
+                    title: req.body.title,
+                    description: req.body.description,
+                    tech: req.body.tech ? JSON.parse(req.body.tech) : [],
+                    githubUrl: req.body.githubUrl,
+                    liveUrl: req.body.liveUrl,
+                    featured: req.body.featured === "true" || req.body.featured === true,
+                    screenshot: req.files && req.files.screenshot ? {
+                        data: req.files.screenshot[0].buffer,
+                        contentType: req.files.screenshot[0].mimetype,
+                        name: req.files.screenshot[0].originalname
+                    } : undefined,
+                    video: req.files && req.files.video ? {
+                        data: req.files.video[0].buffer,
+                        contentType: req.files.video[0].mimetype,
+                        name: req.files.video[0].originalname
+                    } : undefined
+                });
 
-            res.status(201).json(
-                project
-            );
+            const result = project.toObject();
+            if (result.screenshot) delete result.screenshot.data;
+            if (result.video) delete result.video.data;
+
+            res.status(201).json(result);
         } catch (error) {
             console.error(
                 "Project CREATE error:",
@@ -503,14 +545,15 @@ app.post(
 app.put(
     "/api/projects/:id",
     authenticate,
+    upload.fields([
+        { name: "screenshot", maxCount: 1 },
+        { name: "video", maxCount: 1 }
+    ]),
     async(req, res) => {
         try {
             const project =
-                await Project.findByIdAndUpdate(
-                    req.params.id,
-                    req.body, {
-                        new: true
-                    }
+                await Project.findById(
+                    req.params.id
                 );
 
             if (!project) {
@@ -519,7 +562,36 @@ app.put(
                 });
             }
 
-            res.json(project);
+            if (req.body.title) project.title = req.body.title;
+            if (req.body.description !== undefined) project.description = req.body.description;
+            if (req.body.tech) project.tech = JSON.parse(req.body.tech);
+            if (req.body.githubUrl !== undefined) project.githubUrl = req.body.githubUrl;
+            if (req.body.liveUrl !== undefined) project.liveUrl = req.body.liveUrl;
+            if (req.body.featured !== undefined) project.featured = req.body.featured === "true" || req.body.featured === true;
+
+            if (req.files && req.files.screenshot) {
+                project.screenshot = {
+                    data: req.files.screenshot[0].buffer,
+                    contentType: req.files.screenshot[0].mimetype,
+                    name: req.files.screenshot[0].originalname
+                };
+            }
+
+            if (req.files && req.files.video) {
+                project.video = {
+                    data: req.files.video[0].buffer,
+                    contentType: req.files.video[0].mimetype,
+                    name: req.files.video[0].originalname
+                };
+            }
+
+            await project.save();
+
+            const result = project.toObject();
+            if (result.screenshot) delete result.screenshot.data;
+            if (result.video) delete result.video.data;
+
+            res.json(result);
         } catch (error) {
             console.error(
                 "Project UPDATE error:",
@@ -534,38 +606,47 @@ app.put(
 );
 
 /* =========================
-   PROJECTS - DELETE
+   VIEW PROJECT SCREENSHOT / VIDEO
 ========================= */
 
-app.delete(
-    "/api/projects/:id",
-    authenticate,
+app.get(
+    "/api/projects/:id/screenshot",
     async(req, res) => {
         try {
-            const project =
-                await Project.findByIdAndDelete(
-                    req.params.id
-                );
-
-            if (!project) {
-                return res.status(404).json({
-                    message: "Project not found"
-                });
+            const project = await Project.findById(req.params.id);
+            if (!project || !project.screenshot || !project.screenshot.data) {
+                return res.status(404).send("Screenshot not found");
             }
-
-            res.json({
-                success: true,
-                message: "Project deleted"
+            res.set({
+                "Content-Type": project.screenshot.contentType,
+                "Content-Disposition": safeDisposition(project.screenshot.name),
+                "Cache-Control": "public, max-age=300"
             });
+            res.send(project.screenshot.data);
         } catch (error) {
-            console.error(
-                "Project DELETE error:",
-                error
-            );
+            console.error("Screenshot error:", error);
+            res.status(500).send("Could not load screenshot");
+        }
+    }
+);
 
-            res.status(500).json({
-                message: "Could not delete project"
+app.get(
+    "/api/projects/:id/video",
+    async(req, res) => {
+        try {
+            const project = await Project.findById(req.params.id);
+            if (!project || !project.video || !project.video.data) {
+                return res.status(404).send("Video not found");
+            }
+            res.set({
+                "Content-Type": project.video.contentType,
+                "Content-Disposition": safeDisposition(project.video.name),
+                "Cache-Control": "public, max-age=300"
             });
+            res.send(project.video.data);
+        } catch (error) {
+            console.error("Video error:", error);
+            res.status(500).send("Could not load video");
         }
     }
 );
@@ -622,14 +703,11 @@ app.post(
                     verificationUrl: req.body.verificationUrl,
 
                     file: req.file ? {
-                        data: req.file
-                            .buffer,
+                        data: req.file.buffer,
 
-                        contentType: req.file
-                            .mimetype,
+                        contentType: req.file.mimetype,
 
-                        name: req.file
-                            .originalname
+                        name: req.file.originalname
                     } : undefined
                 });
 
@@ -680,34 +758,22 @@ app.put(
                     req.body.title;
             }
 
-            if (
-                req.body.issuer !==
-                undefined
-            ) {
+            if (req.body.issuer !== undefined) {
                 certificate.issuer =
                     req.body.issuer;
             }
 
-            if (
-                req.body.date !==
-                undefined
-            ) {
+            if (req.body.date !== undefined) {
                 certificate.date =
                     req.body.date;
             }
 
-            if (
-                req.body.description !==
-                undefined
-            ) {
+            if (req.body.description !== undefined) {
                 certificate.description =
                     req.body.description;
             }
 
-            if (
-                req.body.verificationUrl !==
-                undefined
-            ) {
+            if (req.body.verificationUrl !== undefined) {
                 certificate.verificationUrl =
                     req.body.verificationUrl;
             }
@@ -766,10 +832,9 @@ app.get(
             }
 
             res.set({
-                "Content-Type": certificate.file
-                    .contentType,
+                "Content-Type": certificate.file.contentType,
 
-                "Content-Disposition": `inline; filename="${certificate.file.name}"`
+                "Content-Disposition": safeDisposition(certificate.file.name)
             });
 
             res.send(
@@ -826,13 +891,48 @@ app.delete(
 );
 
 /* =========================
+   PROJECTS - DELETE
+========================= */
+
+app.delete(
+    "/api/projects/:id",
+    authenticate,
+    async(req, res) => {
+        try {
+            const project =
+                await Project.findByIdAndDelete(
+                    req.params.id
+                );
+
+            if (!project) {
+                return res.status(404).json({
+                    message: "Project not found"
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Project deleted"
+            });
+        } catch (error) {
+            console.error(
+                "Project DELETE error:",
+                error
+            );
+
+            res.status(500).json({
+                message: "Could not delete project"
+            });
+        }
+    }
+);
+
+/* =========================
    DEFAULT DATA
 ========================= */
 
 async function createDefaultData() {
     try {
-        /* PROFILE */
-
         const profile =
             await Profile.findOne();
 
@@ -875,8 +975,6 @@ async function createDefaultData() {
                 "Default profile created ✅"
             );
         }
-
-        /* PROJECT */
 
         const projectCount =
             await Project.countDocuments();
@@ -937,19 +1035,14 @@ app.use(
             error
         );
 
-        if (
-            error.message ===
-            "Not allowed by CORS"
-        ) {
+        if (error.message === "Not allowed by CORS") {
             return res.status(403).json({
                 success: false,
                 message: "CORS: Origin not allowed"
             });
         }
 
-        if (
-            error instanceof multer.MulterError
-        ) {
+        if (error instanceof multer.MulterError) {
             return res.status(400).json({
                 success: false,
                 message: error.message
