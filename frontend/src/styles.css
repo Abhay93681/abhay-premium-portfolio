@@ -26,14 +26,16 @@
 }
 
 :root[data-theme="light"] {
-    --bg: #f5f5fb;
-    --bg-2: #ebebf5;
-    --surface: rgba(255, 255, 255, .72);
+    --bg: #f8fafc;
+    --bg-2: #f1f5f9;
+    --surface: rgba(255, 255, 255, 0.9);
     --surface-2: #ffffff;
-    --border: rgba(20, 20, 45, .13);
-    --text: #14141c;
-    --muted: #55556a;
-    --danger: #c0262d;
+    --border: rgba(148, 163, 184, 0.2);
+    --text: #0f172a;
+    --muted: #475569;
+    --indigo: #4f46e5;
+    --cyan: #0ea5e9;
+    --danger: #ef4444;
     color-scheme: light;
 }
 
@@ -1160,13 +1162,13 @@ p {
 
 
 /* ==========================
-   ADMIN (unchanged look)
+   ADMIN (Updated Modern Dark Theme)
 ========================== */
 
 .admin-page {
     min-height: 100vh;
-    background: #f0f0ec;
-    color: #151515;
+    background: #0f0f12;
+    color: #f2f2f7;
 }
 
 .admin-page .eyebrow {
@@ -1175,7 +1177,8 @@ p {
     display: flex;
     gap: 8px;
     align-items: center;
-    opacity: .65;
+    color: #00d9ff;
+    opacity: 0.9;
 }
 
 .admin-page .primary-button,
@@ -1184,31 +1187,45 @@ p {
     justify-content: center;
     align-items: center;
     gap: 9px;
-    padding: 14px 19px;
-    border-radius: 5px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
 }
 
 .admin-page .primary-button {
-    background: #151515;
-    color: #fff;
+    background: #5145ff;
+    color: #ffffff;
     border: 0;
+    box-shadow: 0 4px 15px rgba(81, 69, 255, 0.4);
+}
+
+.admin-page .primary-button:hover {
+    background: #4335ff;
+    transform: translateY(-1px);
 }
 
 .admin-page .secondary-button {
-    background: transparent;
-    border: 1px solid #9997;
-    color: inherit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #f2f2f7;
+}
+
+.admin-page .secondary-button:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .dashboard {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: 230px 1fr;
+    grid-template-columns: 240px 1fr;
 }
 
 .sidebar {
     padding: 28px 20px;
-    border-right: 1px solid #ccc;
+    background: #16161d;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1217,29 +1234,41 @@ p {
 .sidebar-logo {
     font-size: 25px;
     font-weight: 800;
+    color: #ffffff;
 }
 
 .sidebar-logo span {
-    color: #777;
+    color: #00d9ff;
 }
 
 .sidebar>p {
-    font: 9px "DM Mono", monospace;
-    opacity: .5;
-    margin: 18px 0;
+    font: 10px "DM Mono", monospace;
+    color: #a6a6b6;
+    margin: 18px 0 10px 0;
+    letter-spacing: 1px;
 }
 
 .sidebar button {
     border: 0;
     background: transparent;
     text-align: left;
-    padding: 12px;
-    border-radius: 5px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: #a6a6b6;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.sidebar button:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .sidebar button.active {
-    background: #151515;
-    color: white;
+    background: #5145ff;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(81, 69, 255, 0.3);
 }
 
 .logout-button {
@@ -1247,50 +1276,61 @@ p {
     display: flex;
     gap: 8px;
     align-items: center;
+    color: #ff8d8d !important;
+}
+
+.logout-button:hover {
+    background: rgba(255, 141, 141, 0.1) !important;
 }
 
 .dashboard-content {
     max-width: 1000px;
     width: 100%;
     padding: 30px 45px;
+    background: #0f0f12;
 }
 
 .dashboard-top {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 50px;
-    color: #777;
-    font: 11px "DM Mono", monospace;
+    margin-bottom: 40px;
+    color: #a6a6b6;
+    font: 12px "DM Mono", monospace;
 }
 
 .back-button {
     border: 0;
     background: transparent;
-    color: inherit;
+    color: #00d9ff;
+    cursor: pointer;
+    font-weight: 600;
 }
 
 .editor-heading {
     display: flex;
     justify-content: space-between;
-    align-items: end;
+    align-items: flex-end;
     margin-bottom: 30px;
 }
 
 .editor h1 {
-    font-size: 42px;
-    letter-spacing: -2px;
+    font-size: 38px;
+    letter-spacing: -1px;
+    color: #ffffff;
 }
 
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 18px;
 }
 
 .form-grid label {
-    font: 10px "DM Mono", monospace;
+    font: 11px "DM Mono", monospace;
     text-transform: uppercase;
-    color: #666;
+    color: #a6a6b6;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-grid input,
@@ -1300,12 +1340,22 @@ p {
 .login-form input {
     width: 100%;
     margin-top: 7px;
-    padding: 13px;
-    border: 1px solid #ccc;
-    background: white;
-    color: #151515;
-    border-radius: 4px;
+    padding: 13px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #16161d;
+    color: #ffffff;
+    border-radius: 8px;
     outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-grid input:focus,
+.form-grid textarea:focus,
+.content-form input:focus,
+.content-form textarea:focus,
+.login-form input:focus {
+    border-color: #00d9ff;
 }
 
 .form-grid textarea {
@@ -1319,7 +1369,7 @@ p {
 .content-form {
     max-width: 720px;
     display: grid;
-    gap: 12px;
+    gap: 16px;
 }
 
 .content-form textarea {
@@ -1328,21 +1378,33 @@ p {
 
 .checkbox {
     display: flex;
-    gap: 7px;
+    gap: 10px;
     align-items: center;
+    color: #f2f2f7;
+    font-size: 14px;
 }
 
 .checkbox input {
     width: auto;
+    accent-color: #5145ff;
 }
 
 .upload-box {
-    border: 1px dashed #999;
-    padding: 25px;
+    border: 1px dashed rgba(255, 255, 255, 0.25);
+    background: #16161d;
+    padding: 22px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
+    color: #a6a6b6;
+    transition: border-color 0.2s;
+}
+
+.upload-box:hover {
+    border-color: #00d9ff;
+    color: #ffffff;
 }
 
 .upload-box input {
@@ -1352,47 +1414,66 @@ p {
 .admin-list {
     margin-top: 40px;
     display: grid;
-    gap: 8px;
+    gap: 12px;
 }
 
 .admin-item {
-    background: white;
-    border: 1px solid #ddd;
-    padding: 15px;
+    background: #16161d;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.admin-item strong {
+    color: #ffffff;
+}
+
 .admin-item small {
     display: block;
-    color: #888;
-    margin-top: 5px;
+    color: #a6a6b6;
+    margin-top: 4px;
 }
 
 .admin-item button {
     border: 0;
     background: transparent;
     margin-left: 8px;
+    color: #a6a6b6;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.admin-item button:hover {
+    color: #ffffff;
 }
 
 .login-card {
     width: min(440px, calc(100% - 30px));
     margin: 15vh auto;
     padding: 40px;
-    background: white;
-    border: 1px solid #ddd;
+    background: #16161d;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .login-card h1 {
-    font-size: 42px;
-    letter-spacing: -2px;
+    font-size: 38px;
+    letter-spacing: -1px;
+    color: #ffffff;
+}
+
+.login-card p {
+    color: #a6a6b6;
 }
 
 .login-form {
     display: grid;
-    gap: 12px;
-    margin-top: 30px;
+    gap: 16px;
+    margin-top: 24px;
 }
 
 .full {
@@ -1400,8 +1481,8 @@ p {
 }
 
 .error {
-    color: #a00000;
-    font-size: 12px;
+    color: #ff8d8d;
+    font-size: 13px;
 }
 
 

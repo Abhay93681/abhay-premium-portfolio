@@ -631,19 +631,42 @@ function Projects({ projects, error, onRetry }) {
   );
 }
 
+/* =================================
+   PROJECT CARD (Fixed Screenshot & Video Display)
+================================= */
+
 function ProjectCard({ project, wide }) {
-  const image = safeUrl(project.image || project.thumbnail);
+  // Check if screenshot exists by checking project.screenshot object or name
+  const hasScreenshot = Boolean(project.screenshot && (project.screenshot.name || project.screenshot.contentType));
+  const screenshotUrl = `${API}/projects/${project._id}/screenshot`;
+  
+  const hasVideo = Boolean(project.video && (project.video.name || project.video.contentType));
+  const videoUrl = `${API}/projects/${project._id}/video`;
+
   const github = safeUrl(project.githubUrl);
   const live = safeUrl(project.liveUrl);
-  const details = safeUrl(project.detailsUrl);
   const tech = Array.isArray(project.tech) ? project.tech : [];
 
   return (
     <Reveal className={`project-card glow ${wide ? "wide" : ""}`}>
-      <div className="thumb">
-        {image ? <img src={image} alt="" loading="lazy" /> : <Monitor size={40} aria-hidden="true" />}
+      <div className="thumb" style={{ height: hasScreenshot ? "220px" : "170px" }}>
+        {hasScreenshot ? (
+          <img src={screenshotUrl} alt={`${project.title} screenshot`} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <Monitor size={40} aria-hidden="true" />
+        )}
         {project.featured && <span className="badge">Featured</span>}
       </div>
+
+      {hasVideo && (
+        <div style={{ padding: "16px 22px 0 22px" }}>
+          <video width="100%" controls preload="metadata" style={{ borderRadius: "8px", maxHeight: "220px", background: "#000" }}>
+            <source src={videoUrl} type={project.video.contentType} />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )}
+
       <div className="project-body">
         <h3>{project.title}</h3>
         {project.description && <p>{project.description}</p>}
@@ -661,11 +684,6 @@ function ProjectCard({ project, wide }) {
           {github && (
             <a className="btn btn-small btn-ghost" href={github} target="_blank" rel="noopener noreferrer">
               <Github size={14} /> GitHub
-            </a>
-          )}
-          {details && (
-            <a className="btn btn-small btn-ghost" href={details} target="_blank" rel="noopener noreferrer">
-              Details
             </a>
           )}
         </div>
@@ -1083,7 +1101,7 @@ function AdminDashboard({ profile, projects, certificates, token, reload, onBack
     await reload();
   }
 
-  const tabs = [["profile", "Profile"], ["projects", "Projects"], ["certificates", "Certificates"]];
+  const tabs = [["profile", "Profile"], ["projects", "Projects"], ["skills", "Skills"], ["certificates", "Certificates"]];
 
   return (
     <div className="admin-page">
@@ -1106,6 +1124,7 @@ function AdminDashboard({ profile, projects, certificates, token, reload, onBack
           {tab === "profile" && <ProfileEditor profile={profile} saveProfile={saveProfile} />}
           {tab === "projects" && <ProjectEditor projects={projects} token={token} reload={reload} deleteItem={deleteItem} />}
           {tab === "certificates" && <CertificateEditor certificates={certificates} token={token} reload={reload} deleteItem={deleteItem} />}
+          {tab === "skills" && <SkillsEditor profile={profile} saveProfile={saveProfile} />}
         </main>
       </div>
     </div>
@@ -1164,38 +1183,61 @@ function ProfileEditor({ profile, saveProfile }) {
   );
 }
 
+
+
 /* =================================
-   ADMIN: PROJECT EDITOR
+   ADMIN: PROJECT EDITOR (Updated list with clear Edit/Delete buttons)
 ================================= */
 
 function ProjectEditor({ projects, token, reload, deleteItem }) {
-  const empty = { title: "", description: "", tech: "", githubUrl: "", liveUrl: "", featured: false };
+  const empty = { title: "", description: "", tech: "", githubUrl: "", liveUrl: "", featured: false, screenshot: null, video: null };
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
   const change = (key) => (event) => setForm({ ...form, [key]: event.target.value });
 
   async function submit(event) {
     event.preventDefault();
-    const data = {
-      ...form,
-      tech:
-        typeof form.tech === "string"
-          ? form.tech.split(",").map((item) => item.trim()).filter(Boolean)
-          : form.tech
-    };
-    await fetch(editing ? `${API}/projects/${editing}` : `${API}/projects`, {
-      method: editing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data)
-    });
-    setForm(empty);
-    setEditing(null);
-    await reload();
+    const formData = new FormData();
+    formData.append("title", form.title);
+    formData.append("description", form.description);
+    const techArray = typeof form.tech === "string"
+      ? form.tech.split(",").map((item) => item.trim()).filter(Boolean)
+      : form.tech;
+    formData.append("tech", JSON.stringify(techArray));
+    formData.append("githubUrl", form.githubUrl);
+    formData.append("liveUrl", form.liveUrl);
+    formData.append("featured", form.featured);
+
+    if (form.screenshot) formData.append("screenshot", form.screenshot);
+    if (form.video) formData.append("video", form.video);
+
+   const res = await fetch(editing ? `${API}/projects/${editing}` : `${API}/projects`, {
+  method: editing ? "PUT" : "POST",
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData
+});
+if (!res.ok) {
+  const data = await res.json().catch(() => ({}));
+  alert(data.message || `Upload failed (HTTP ${res.status})`);
+  return;
+}
+setForm(empty);
+setEditing(null);
+await reload();
   }
 
   function edit(project) {
     setEditing(project._id);
-    setForm({ ...project, tech: (project.tech || []).join(", ") });
+    setForm({
+      title: project.title || "",
+      description: project.description || "",
+      tech: (project.tech || []).join(", "),
+      githubUrl: project.githubUrl || "",
+      liveUrl: project.liveUrl || "",
+      featured: project.featured || false,
+      screenshot: null,
+      video: null
+    });
   }
 
   return (
@@ -1206,7 +1248,7 @@ function ProjectEditor({ projects, token, reload, deleteItem }) {
           <h1>Projects</h1>
         </div>
         <button className="secondary-button" onClick={() => { setForm(empty); setEditing(null); }}>
-          <Plus /> New Project
+          <Plus size={16} /> New Project
         </button>
       </div>
 
@@ -1216,25 +1258,58 @@ function ProjectEditor({ projects, token, reload, deleteItem }) {
         <input placeholder="React, Node.js, MongoDB" value={form.tech} onChange={change("tech")} />
         <input placeholder="GitHub URL" value={form.githubUrl} onChange={change("githubUrl")} />
         <input placeholder="Live Demo URL" value={form.liveUrl} onChange={change("liveUrl")} />
+        
+        <label className="upload-box">
+          <Upload size={16} />
+          {form.screenshot ? `Screenshot: ${form.screenshot.name}` : "Upload Screenshot (Image)"}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => setForm({ ...form, screenshot: e.target.files[0] || null })}
+          />
+        </label>
+
+        <label className="upload-box">
+          <Upload size={16} />
+          {form.video ? `Video: ${form.video.name}` : "Upload Demo Video (MP4/WebM)"}
+          <input
+            type="file"
+            accept="video/mp4,video/webm"
+            onChange={(e) => setForm({ ...form, video: e.target.files[0] || null })}
+          />
+        </label>
+
         <label className="checkbox">
           <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />
           Featured Project
         </label>
         <button className="primary-button">
-          {editing ? <Save /> : <Plus />} {editing ? "Update Project" : "Add Project"}
+          {editing ? <Save size={16} /> : <Plus size={16} />} {editing ? "Update Project" : "Add Project"}
         </button>
       </form>
 
-      <div className="admin-list">
+      <div className="admin-list" style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {projects.map((project) => (
-          <div className="admin-item" key={project._id}>
-            <div>
-              <strong>{project.title}</strong>
-              <small>{(project.tech || []).join(" · ")}</small>
+          <div className="admin-item" key={project._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ overflow: "hidden", marginRight: "10px" }}>
+              <strong style={{ display: "block", fontSize: "15px" }}>{project.title}</strong>
+              <small style={{ opacity: 0.7 }}>{(project.tech || []).join(" · ")}</small>
             </div>
-            <div>
-              <button onClick={() => edit(project)} aria-label="Edit project"><Pencil /></button>
-              <button onClick={() => deleteItem("projects", project._id)} aria-label="Delete project"><Trash2 /></button>
+            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+              <button 
+                type="button" 
+                onClick={() => edit(project)} 
+                style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <Pencil size={14} /> Edit
+              </button>
+              <button 
+                type="button" 
+                onClick={() => deleteItem("projects", project._id)} 
+                style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <Trash2 size={14} /> Delete
+              </button>
             </div>
           </div>
         ))}
@@ -1329,6 +1404,57 @@ function CertificateEditor({ certificates, token, reload, deleteItem }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+/* =================================
+   ADMIN: SKILLS EDITOR
+================================= */
+
+function SkillsEditor({ profile, saveProfile }) {
+  const [skillsText, setSkillsText] = useState(
+    Array.isArray(profile.skills) ? profile.skills.join(", ") : profile.skills || ""
+  );
+
+  async function save(e) {
+    e.preventDefault();
+    const skillsArray = skillsText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    await saveProfile({
+      ...profile,
+      skills: skillsArray
+    });
+  }
+
+  return (
+    <div className="editor">
+      <div className="editor-heading">
+        <div>
+          <div className="eyebrow">CONTENT</div>
+          <h1>Skills & Tools</h1>
+        </div>
+      </div>
+
+      <form className="content-form" onSubmit={save}>
+        <p style={{ opacity: 0.8, marginBottom: "12px", fontSize: "14px" }}>
+          Apne saare skills aur tools ko commas (,) se alag karke likhein. Yeh automatically website ke 'Skills and tools' section mein category wise dikhne lagenge.
+        </p>
+        
+        <textarea 
+          rows={6}
+          value={skillsText} 
+          onChange={(e) => setSkillsText(e.target.value)}
+          placeholder="React, JavaScript, Node.js, MongoDB, AWS, C++..." 
+          style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "inherit" }}
+        />
+
+        <button className="primary-button" type="submit" style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <Save size={16} /> Save Skills
+        </button>
+      </form>
     </div>
   );
 }
